@@ -1,78 +1,67 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
+
+const PAGE_SIZE = 10;
 
 function App() {
   const [data, setData] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const itemsPerPage = 10;
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          `https://geektrust.s3-ap-southeast-1.amazonaws.com/adminui-problem/members.json`
-        );
+    fetch('https://geektrust.s3-ap-southeast-1.amazonaws.com/adminui-problem/members.json')
+      .then(response => {
+        if (!response.ok) throw new Error('Fetch failed');
+        return response.json();
+      })
+      .then(json => {
+        setData(json);
+        setLoading(false);
+      })
+      .catch(() => {
+        setFetchError(true);
+        setLoading(false);
+        alert('failed to fetch data');
+      });
+  }, []);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch data");
-        }
+  const totalPages = Math.ceil(data.length / PAGE_SIZE);
+  const start = (page - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const pageData = data.slice(start, end);
 
-        const result = await response.json();
-        setData(result);
-
-        // Extract total pages from headers
-        const totalItems = response.headers.get("x-total-count");
-        setTotalPages(Math.ceil(totalItems / itemsPerPage));
-      } catch (error) {
-        console.error("Fetch error:", error);
-        alert("Failed to fetch data");
-      }
-    };
-
-    fetchData();
-  }, [currentPage]);
-
-  // ✅ FIXED: Functional updates to avoid stale state issues
-  const handlePrevious = () => {
-    setCurrentPage((prevPage) => (prevPage > 1 ? prevPage - 1 : prevPage));
-  };
-
-  const handleNext = () => {
-    setCurrentPage((prevPage) =>
-      prevPage < totalPages ? prevPage + 1 : prevPage
-    );
-  };
+  if (loading) return <div>Loading...</div>;
+  if (fetchError) return <div>Error occurred.</div>;
 
   return (
     <div>
-      <h1>Pagination Example</h1>
-      <table border="1" cellPadding="5" style={{ borderCollapse: "collapse" }}>
+      <table border="1" cellPadding="5" cellSpacing="0" style={{ width: '100%' }}>
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Title</th>
+            <th>ID</th><th>Name</th><th>Email</th><th>Role</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((item) => (
-            <tr key={item.id}>
-              <td>{item.id}</td>
-              <td>{item.title}</td>
+          {pageData.map(emp => (
+            <tr key={emp.id}>
+              <td>{emp.id}</td>
+              <td>{emp.name}</td>
+              <td>{emp.email}</td>
+              <td>{emp.role}</td>
             </tr>
           ))}
         </tbody>
       </table>
-
-      <div style={{ marginTop: "10px" }}>
-        <button onClick={handlePrevious} disabled={currentPage === 1}>
-          Previous
-        </button>
-        <span style={{ margin: "0 10px" }}>
-          Page {currentPage} of {totalPages}
-        </span>
-        <button onClick={handleNext} disabled={currentPage === totalPages}>
-          Next
-        </button>
+      <div style={{ marginTop: '10px' }}>
+        <button
+          onClick={() => setPage(page - 1)}
+          disabled={page === 1}
+        >Previous</button>
+        <span style={{ margin: '0 10px' }}>{page} / {totalPages}</span>
+        <button
+          onClick={() => setPage(page + 1)}
+          disabled={page === totalPages}
+        >Next</button>
       </div>
     </div>
   );
