@@ -1,81 +1,69 @@
-import { useState, useEffect } from "react";
-import "./App.css";
+import { useEffect, useState } from "react";
 
 function App() {
-  const [employees, setEmployees] = useState([]);
+  const [data, setData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const rowsPerPage = 10;
+  const [totalPages, setTotalPages] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        let response = await fetch("https://geektrust.s3-ap-southeast-1.amazonaws.com/adminui-problem/members.json");
+        const response = await fetch(
+          `https://jsonplaceholder.typicode.com/posts?_page=${currentPage}&_limit=${itemsPerPage}`
+        );
+
         if (!response.ok) {
-          throw new Error("Network response was not ok");
+          throw new Error("Failed to fetch data");
         }
-        let data = await response.json();
-        setEmployees(data);
+
+        const result = await response.json();
+        setData(result);
+
+        // Extract total pages from headers
+        const totalItems = response.headers.get("x-total-count");
+        setTotalPages(Math.ceil(totalItems / itemsPerPage));
       } catch (error) {
-          console.error("Fetch error:", error);
-          alert("failed to fetch data");
-      } finally {
-        setLoading(false);
+        console.error("Fetch error:", error);
+        alert("Failed to fetch data");
       }
     };
+
     fetchData();
-  }, []);
+  }, [currentPage]);
 
-  const totalPages = Math.ceil(employees.length / rowsPerPage);
-
-  const indexOfLastRow = currentPage * rowsPerPage;
-  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-  const currentEmployees = employees.slice(indexOfFirstRow, indexOfLastRow);
-
+  // ✅ FIXED: Functional updates to avoid stale state issues
   const handlePrevious = () => {
-      setCurrentPage((prev) => (prev > 1 ? prev - 1 : prev));
+    setCurrentPage((prevPage) => (prevPage > 1 ? prevPage - 1 : prevPage));
   };
 
   const handleNext = () => {
-      setCurrentPage((prev) => (prev < totalPages ? prev + 1 : prev));
+    setCurrentPage((prevPage) =>
+      prevPage < totalPages ? prevPage + 1 : prevPage
+    );
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Employee Data</h2>
-
-      <table border="1" cellPadding="10" cellSpacing="0">
+    <div>
+      <h1>Pagination Example</h1>
+      <table border="1" cellPadding="5" style={{ borderCollapse: "collapse" }}>
         <thead>
           <tr>
             <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
+            <th>Title</th>
           </tr>
         </thead>
         <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan="4">Loading...</td>
+          {data.map((item) => (
+            <tr key={item.id}>
+              <td>{item.id}</td>
+              <td>{item.title}</td>
             </tr>
-          ) : currentEmployees.length > 0 ? (
-            currentEmployees.map((emp) => (
-              <tr key={emp.id}>
-                <td>{emp.id}</td>
-                <td>{emp.name}</td>
-                <td>{emp.email}</td>
-                <td>{emp.role}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="4">No employees found</td>
-            </tr>
-          )}
+          ))}
         </tbody>
       </table>
 
-      <div style={{ marginTop: "20px" }}>
+      <div style={{ marginTop: "10px" }}>
         <button onClick={handlePrevious} disabled={currentPage === 1}>
           Previous
         </button>
