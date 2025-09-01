@@ -10,7 +10,7 @@ function App() {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `https://jsonplaceholder.typicode.com/posts?_page=${currentPage}&_limit=${itemsPerPage}`
+          `https://geektrust.s3-ap-southeast-1.amazonaws.com/adminui-problem/members.json`
         );
 
         if (!response.ok) {
